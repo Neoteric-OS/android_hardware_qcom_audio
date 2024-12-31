@@ -161,9 +161,6 @@ vendor.audio.sys.init=false
 
 #Enable DS2 feature for Dolby
 PRODUCT_PROPERTY_OVERRIDES += \
-vendor.audio.dolby.ds2.enabled=true
-
-PRODUCT_PROPERTY_OVERRIDES += \
 persist.vendor.audio.hw.binder.size_kbyte=1024
 
 #Disable split a2dp
