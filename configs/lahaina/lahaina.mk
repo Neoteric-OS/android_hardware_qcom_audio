@@ -177,9 +177,9 @@ PRODUCT_COPY_FILES += \
     $(AUDIO_HAL_DIR)/configs/lahaina/mixer_paths_lahaina_qrd.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_lahaina_qrd.xml \
     $(AUDIO_HAL_DIR)/configs/lahaina/mixer_paths_lahaina_mtp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_lahaina_mtp.xml \
     $(AUDIO_HAL_DIR)/configs/lahaina/mixer_paths_lahaina_cdp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_lahaina_cdp.xml \
-    vendor/qcom/opensource/pal/configs/lahaina/resourcemanager_lahaina_qrd.xml:$(TARGET_COPY_OUT_VENDOR)/etc/resourcemanager_lahaina_qrd.xml \
-    vendor/qcom/opensource/pal/configs/lahaina/resourcemanager_lahaina_mtp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/resourcemanager_lahaina_mtp.xml \
-    vendor/qcom/opensource/pal/configs/lahaina/resourcemanager_lahaina_cdp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/resourcemanager_lahaina_cdp.xml \
+    hardware/qcom-caf/sm8550/audio/pal/configs/lahaina/resourcemanager_lahaina_qrd.xml:$(TARGET_COPY_OUT_VENDOR)/etc/resourcemanager_lahaina_qrd.xml \
+    hardware/qcom-caf/sm8550/audio/pal/configs/lahaina/resourcemanager_lahaina_mtp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/resourcemanager_lahaina_mtp.xml \
+    hardware/qcom-caf/sm8550/audio/pal/configs/lahaina/resourcemanager_lahaina_cdp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/resourcemanager_lahaina_cdp.xml \
     $(AUDIO_HAL_DIR)/configs/common/media_codecs_vendor_audio.xml:$(TARGET_COPY_OUT_VENDOR)/etc/media_codecs_vendor_audio.xml \
     frameworks/native/data/etc/android.hardware.audio.pro.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.audio.pro.xml \
     frameworks/native/data/etc/android.hardware.audio.low_latency.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.audio.low_latency.xml

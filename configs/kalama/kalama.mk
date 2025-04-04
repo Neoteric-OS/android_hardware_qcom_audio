@@ -122,11 +122,11 @@ PRODUCT_PACKAGES += fai__4.8.14_2.0__3.0.0_0.0__3.1.2_0.0__3.2.0_0.1__eai_2.25_e
 QCV_FAMILY_SKUS := kalama
 DEVICE_SKU := kalama
 
-CONFIG_PAL_SRC_DIR := vendor/qcom/opensource/pal/configs/kalama
+CONFIG_PAL_SRC_DIR := hardware/qcom-caf/sm8550/audio/pal/configs/kalama
 CONFIG_HAL_SRC_DIR := $(AUDIO_HAL_DIR)/configs/kalama
 CONFIG_SKU_OUT_DIR := $(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)
 
-PRODUCT_COPY_FILES += \
+PRODUCT_COPY_FILES ?= \
     $(CONFIG_HAL_SRC_DIR)/audio_effects.conf:$(CONFIG_SKU_OUT_DIR)/audio_effects.conf \
     $(CONFIG_HAL_SRC_DIR)/audio_effects.xml:$(CONFIG_SKU_OUT_DIR)/audio_effects.xml \
     $(CONFIG_HAL_SRC_DIR)/microphone_characteristics.xml:$(TARGET_COPY_OUT_VENDOR)/etc/microphone_characteristics.xml \
@@ -158,11 +158,11 @@ PRODUCT_COPY_FILES += \
 
 #XML Audio configuration files
 ifneq ($(TARGET_USES_AOSP_FOR_AUDIO), true)
-PRODUCT_COPY_FILES += \
+PRODUCT_COPY_FILES ?= \
     $(CONFIG_HAL_SRC_DIR)/audio_policy_configuration.xml:$(CONFIG_SKU_OUT_DIR)/audio_policy_configuration.xml
 
 #Audio configuration xml's common to Kalama family
-PRODUCT_COPY_FILES += \
+PRODUCT_COPY_FILES ?= \
 $(foreach DEVICE_SKU, $(QCV_FAMILY_SKUS), \
     $(CONFIG_HAL_SRC_DIR)/audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/sku_$(DEVICE_SKU)_qssi/audio_policy_configuration.xml)
 
