@@ -177,11 +177,13 @@ public:
     static void audio_extn_perf_lock_release(int *handle);
     /* end kpi optimize perf apis */
     static bool isServiceRegistered() { return sServicesRegistered; }
+    static bool hasRegisterReconfigCbFn() { return hasRegisterReconfigCb; }
 protected:
     pal_stream_handle_t *karaoke_stream_handle;
     struct pal_stream_attributes sattr;
 private:
     static std::atomic<bool> sServicesRegistered;
+    static std::atomic<bool> hasRegisterReconfigCb;
 
 };
 

@@ -626,6 +626,7 @@ static void *a2dp_bt_lib_source_handle = NULL;
 static a2dp_bt_audio_pre_init_t a2dp_bt_audio_pre_init = nullptr;
 typedef void (*register_reconfig_cb_t)(int (*reconfig_cb)(tSESSION_TYPE, int));
 static register_reconfig_cb_t register_reconfig_cb = nullptr;
+std::atomic<bool> AudioExtn::hasRegisterReconfigCb = false;
 
 int AudioExtn::a2dp_source_feature_init(bool is_feature_enabled)
 {
@@ -656,14 +657,13 @@ int AudioExtn::a2dp_source_feature_init(bool is_feature_enabled)
 
         if (!(register_reconfig_cb = (register_reconfig_cb_t)dlsym(
             a2dp_bt_lib_source_handle, "register_reconfig_cb")) ) {
-            AHAL_ERR("dlsym failed");
-            goto feature_disabled;
-        }
-
-        if (a2dp_bt_lib_source_handle && register_reconfig_cb) {
+            AHAL_ERR("dlsym for register_reconfig_cb failed");
+            hasRegisterReconfigCb = false;
+        } else if (a2dp_bt_lib_source_handle && register_reconfig_cb) {
             AHAL_DBG("calling BT module register reconfig");
             int (*reconfig_cb_ptr)(tSESSION_TYPE, int) = &reconfig_cb;
             register_reconfig_cb(reconfig_cb_ptr);
+            hasRegisterReconfigCb = true;
         }
 
         AHAL_DBG("---- Feature A2DP offload is Enabled ----");
