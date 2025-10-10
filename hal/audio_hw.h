@@ -36,7 +36,7 @@
 
  *  Changes from Qualcomm Innovation Center are provided under the following license:
 
- * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted (subject to the limitations in the
@@ -111,14 +111,13 @@ typedef struct {
 #endif
 
 #if LINUX_ENABLED
+#define ADM_LIBRARY_PATH "/usr/lib/libadm.so"
 #if defined(__LP64__)
 #define VISUALIZER_LIBRARY_PATH "/usr/lib64/libqcomvisualizer.so"
 #define OFFLOAD_EFFECTS_BUNDLE_LIBRARY_PATH "/usr/lib64/libqcompostprocbundle.so"
-#define ADM_LIBRARY_PATH "/usr/lib64/libadm.so"
 #else
 #define VISUALIZER_LIBRARY_PATH "/usr/lib/libqcomvisualizer.so"
 #define OFFLOAD_EFFECTS_BUNDLE_LIBRARY_PATH "/usr/lib/libqcompostprocbundle.so"
-#define ADM_LIBRARY_PATH "/usr/lib/libadm.so"
 #endif
 #else
 #if defined(__LP64__)
@@ -872,6 +871,7 @@ struct soft_step_volume_params {
 #endif
 void out_set_power_policy(uint8_t enable);
 void in_set_power_policy(uint8_t enable);
+card_status_t snd_card_status(void);
 
 int select_devices(struct audio_device *adev,
                           audio_usecase_t uc_id);
