@@ -26,9 +26,10 @@ AUDIO_FEATURE_ENABLED_HW_ACCELERATED_EFFECTS := false
 AUDIO_FEATURE_ENABLED_A2DP_OFFLOAD := true
 AUDIO_FEATURE_ENABLED_AHAL_EXT := false
 DOLBY_ENABLE := false
+AUDIO_FEATURE_ENABLED_EC_REF_CAPTURE ?= false
 endif
 
-AUDIO_FEATURE_ENABLED_DLKM := true
+AUDIO_FEATURE_ENABLED_DLKM ?= false
 BOARD_SUPPORTS_GCS := false
 AUDIO_FEATURE_ENABLED_INSTANCE_ID := true
 AUDIO_USE_DEEP_AS_PRIMARY_OUTPUT := false
@@ -170,7 +171,7 @@ BOARD_VENDOR_KERNEL_MODULES += \
     $(KERNEL_MODULES_OUT)/audio_tx_macro.ko \
     $(KERNEL_MODULES_OUT)/audio_machine_bengal.ko \
     $(KERNEL_MODULES_OUT)/audio_snd_event.ko
-endif
+
 
 #Audio DLKM
 AUDIO_DLKM := audio_apr.ko
@@ -199,6 +200,7 @@ AUDIO_DLKM += audio_machine_bengal.ko
 AUDIO_DLKM += audio_snd_event.ko
 
 PRODUCT_PACKAGES += $(AUDIO_DLKM)
+endif
 
 ifneq ($(strip $(TARGET_USES_RRO)), true)
 #Audio Specific device overlays
@@ -215,14 +217,14 @@ PRODUCT_COPY_FILES += \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/bengal/audio_platform_info_intcodec.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_platform_info_intcodec.xml \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/bengal/audio_platform_info_scubaidp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_platform_info_scubaidp.xml \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/bengal/audio_platform_info_scubaqrd.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_platform_info_scubaqrd.xml \
-    vendor/qcom/opensource/audio-hal/primary-hal/configs/bengal/sound_trigger_mixer_paths.xml:$(TARGET_COPY_OUT_VENDOR)/etc/sound_trigger_mixer_paths.xml \
+    vendor/qcom/opensource/audio-hal/primary-hal/configs/bengal/sound_trigger_mixer_paths_bengal_idp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/sound_trigger_mixer_paths_bengal_idp.xml \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/bengal/sound_trigger_mixer_paths_scubaidp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/sound_trigger_mixer_paths_scubaidp.xml \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/bengal/sound_trigger_mixer_paths_scubaqrd.xml:$(TARGET_COPY_OUT_VENDOR)/etc/sound_trigger_mixer_paths_scubaqrd.xml \
-    vendor/qcom/opensource/audio-hal/primary-hal/configs/bengal/sound_trigger_mixer_paths_qrd.xml:$(TARGET_COPY_OUT_VENDOR)/etc/sound_trigger_mixer_paths_qrd.xml \
-    vendor/qcom/opensource/audio-hal/primary-hal/configs/bengal/mixer_paths.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths.xml \
+    vendor/qcom/opensource/audio-hal/primary-hal/configs/bengal/sound_trigger_mixer_paths_bengal_qrd.xml:$(TARGET_COPY_OUT_VENDOR)/etc/sound_trigger_mixer_paths_bengal_qrd.xml \
+    vendor/qcom/opensource/audio-hal/primary-hal/configs/bengal/mixer_paths_bengal_idp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_bengal_idp.xml \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/bengal/mixer_paths_scubaidp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_scubaidp.xml \
     vendor/qcom/opensource/audio-hal/primary-hal/configs/bengal/mixer_paths_scubaqrd.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_scubaqrd.xml \
-    vendor/qcom/opensource/audio-hal/primary-hal/configs/bengal/mixer_paths_qrd.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_qrd.xml \
+    vendor/qcom/opensource/audio-hal/primary-hal/configs/bengal/mixer_paths_bengal_qrd.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_bengal_qrd.xml \
     frameworks/native/data/etc/android.hardware.audio.pro.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.audio.pro.xml \
     frameworks/native/data/etc/android.hardware.audio.low_latency.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.audio.low_latency.xml
 
@@ -453,6 +455,7 @@ vendor.audio.feature.deepbuffer_as_primary.enable=false \
 vendor.audio.feature.vbat.enable=true \
 vendor.audio.feature.wsa.enable=false \
 vendor.audio.feature.audiozoom.enable=false \
+vendor.audio.gsl.shmem.dmaheap.uncached=true \
 vendor.audio.feature.snd_mon.enable=true
 
 # for HIDL related packages
