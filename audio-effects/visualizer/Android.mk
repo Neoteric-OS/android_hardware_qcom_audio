@@ -50,7 +50,7 @@ LOCAL_MODULE:= libqcomvisualizer
 LOCAL_VENDOR_MODULE := true
 
 LOCAL_C_INCLUDES := \
-    vendor/qcom/opensource/pal \
+    hardware/qcom-caf/sm8450/audio/pal \
     $(call include-path-for, audio-effects)
 
 LOCAL_CFLAGS += -Wno-unused-variable

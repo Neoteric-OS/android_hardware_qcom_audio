@@ -186,37 +186,37 @@ PRODUCT_PACKAGES += $(AUDIO_DLKM)
 
 ifneq ($(strip $(TARGET_USES_RRO)), true)
 #Audio Specific device overlays
-DEVICE_PACKAGE_OVERLAYS += vendor/qcom/opensource/audio-hal/primary-hal/configs/common/overlay
+DEVICE_PACKAGE_OVERLAYS += hardware/qcom-caf/sm8450/audio/primary-hal/configs/common/overlay
 endif
 PRODUCT_PACKAGES += $(AUDIO_AGM)
 PRODUCT_PACKAGES += $(AUDIO_PAL)
 
 PRODUCT_COPY_FILES += \
-    vendor/qcom/opensource/audio-hal/primary-hal/configs/kona/audio_effects.conf:$(TARGET_COPY_OUT_VENDOR)/etc/audio_effects.conf \
-    vendor/qcom/opensource/audio-hal/primary-hal/configs/kona/audio_effects.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_effects.xml \
-    vendor/qcom/opensource/audio-hal/primary-hal/configs/kona/card-defs.xml:$(TARGET_COPY_OUT_VENDOR)/etc/card-defs.xml \
-    vendor/qcom/opensource/audio-hal/primary-hal/configs/kona/mixer_paths.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths.xml \
-    vendor/qcom/opensource/audio-hal/primary-hal/configs/kona/mixer_paths_qrd.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_qrd.xml \
-    vendor/qcom/opensource/audio-hal/primary-hal/configs/kona/mixer_paths_cdp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_cdp.xml \
-    vendor/qcom/opensource/pal/configs/kona/resourcemanager.xml:$(TARGET_COPY_OUT_VENDOR)/etc/resourcemanager.xml \
-    vendor/qcom/opensource/pal/configs/kona/resourcemanager_qrd.xml:$(TARGET_COPY_OUT_VENDOR)/etc/resourcemanager_qrd.xml \
+    hardware/qcom-caf/sm8450/audio/primary-hal/configs/kona/audio_effects.conf:$(TARGET_COPY_OUT_VENDOR)/etc/audio_effects.conf \
+    hardware/qcom-caf/sm8450/audio/primary-hal/configs/kona/audio_effects.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_effects.xml \
+    hardware/qcom-caf/sm8450/audio/primary-hal/configs/kona/card-defs.xml:$(TARGET_COPY_OUT_VENDOR)/etc/card-defs.xml \
+    hardware/qcom-caf/sm8450/audio/primary-hal/configs/kona/mixer_paths.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths.xml \
+    hardware/qcom-caf/sm8450/audio/primary-hal/configs/kona/mixer_paths_qrd.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_qrd.xml \
+    hardware/qcom-caf/sm8450/audio/primary-hal/configs/kona/mixer_paths_cdp.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_cdp.xml \
+    hardware/qcom-caf/sm8450/audio/pal/configs/kona/resourcemanager.xml:$(TARGET_COPY_OUT_VENDOR)/etc/resourcemanager.xml \
+    hardware/qcom-caf/sm8450/audio/pal/configs/kona/resourcemanager_qrd.xml:$(TARGET_COPY_OUT_VENDOR)/etc/resourcemanager_qrd.xml \
     frameworks/native/data/etc/android.hardware.audio.pro.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.audio.pro.xml \
     frameworks/native/data/etc/android.hardware.audio.low_latency.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.audio.low_latency.xml
 
 #XML Audio configuration files
 ifneq ($(TARGET_USES_AOSP_FOR_AUDIO), true)
 PRODUCT_COPY_FILES += \
-    $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/kona/audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/audio_policy_configuration.xml
+    $(TOPDIR)hardware/qcom-caf/sm8450/audio/primary-hal/configs/kona/audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio/audio_policy_configuration.xml
 endif
 PRODUCT_COPY_FILES += \
-    $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/common/audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_configuration.xml \
+    $(TOPDIR)hardware/qcom-caf/sm8450/audio/primary-hal/configs/common/audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_configuration.xml \
     $(TOPDIR)frameworks/av/services/audiopolicy/config/a2dp_audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/a2dp_audio_policy_configuration.xml \
     $(TOPDIR)frameworks/av/services/audiopolicy/config/audio_policy_volumes.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_volumes.xml \
     $(TOPDIR)frameworks/av/services/audiopolicy/config/default_volume_tables.xml:$(TARGET_COPY_OUT_VENDOR)/etc/default_volume_tables.xml \
     $(TOPDIR)frameworks/av/services/audiopolicy/config/r_submix_audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/r_submix_audio_policy_configuration.xml \
     $(TOPDIR)frameworks/av/services/audiopolicy/config/usb_audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/usb_audio_policy_configuration.xml \
-    $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/common/bluetooth_qti_audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/bluetooth_qti_audio_policy_configuration.xml \
-    $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/common/bluetooth_qti_hearing_aid_audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/bluetooth_qti_hearing_aid_audio_policy_configuration.xml
+    $(TOPDIR)hardware/qcom-caf/sm8450/audio/primary-hal/configs/common/bluetooth_qti_audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/bluetooth_qti_audio_policy_configuration.xml \
+    $(TOPDIR)hardware/qcom-caf/sm8450/audio/primary-hal/configs/common/bluetooth_qti_hearing_aid_audio_policy_configuration.xml:$(TARGET_COPY_OUT_VENDOR)/etc/bluetooth_qti_hearing_aid_audio_policy_configuration.xml
 
 
 # Low latency audio buffer size in frames

@@ -30,9 +30,9 @@ LOCAL_SHARED_LIBRARIES := \
     libar-pal
 
 LOCAL_C_INCLUDES := \
-    vendor/qcom/opensource/pal \
-    vendor/qcom/opensource/audio-hal/primary-hal/hal \
-    vendor/qcom/opensource/audio-hal/primary-hal/hal/audio_extn \
+    hardware/qcom-caf/sm8450/audio/pal \
+    hardware/qcom-caf/sm8450/audio/primary-hal/hal \
+    hardware/qcom-caf/sm8450/audio/primary-hal/hal/audio_extn \
     external/expat/lib \
     system/media/audio_utils/include \
     $(call include-path-for, audio-route) \
@@ -67,9 +67,9 @@ LOCAL_SHARED_LIBRARIES := \
     libar-pal
 
 LOCAL_C_INCLUDES := \
-    vendor/qcom/opensource/pal \
-    vendor/qcom/opensource/audio-hal/primary-hal/hal \
-    vendor/qcom/opensource/audio-hal/primary-hal/hal/audio_extn \
+    hardware/qcom-caf/sm8450/audio/pal \
+    hardware/qcom-caf/sm8450/audio/primary-hal/hal \
+    hardware/qcom-caf/sm8450/audio/primary-hal/hal/audio_extn \
     external/expat/lib \
     system/media/audio_utils/include \
     $(call include-path-for, audio-route) \
