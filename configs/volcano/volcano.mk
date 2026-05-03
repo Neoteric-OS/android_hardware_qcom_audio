@@ -94,7 +94,8 @@ BUILD_AUDIO_TECHPACK_SOURCE := true
 AUDIO_FEATURE_ENABLED_MCS := true
 ##AUDIO_FEATURE_FLAGS
 BOARD_SUPPORTS_OPENSOURCE_STHAL := true
-
+AUDIO_FEATURE_ENABLED_DYNAMIC_SR := true
+AUDIO_FEATURE_ENABLED_TRUE_STEREO := true
 ifneq ($(strip $(TARGET_USES_RRO)), true)
 #Audio Specific device overlays
 DEVICE_PACKAGE_OVERLAYS += $(AUDIO_HAL_DIR)/configs/common/overlay
@@ -127,8 +128,8 @@ PRODUCT_PACKAGES += fai__4.8.4_0.0__3.0.0_0.0__3.1.1_0.0__3.2.0_0.1__eai_3.4_enp
 PRODUCT_PACKAGES += fai__8.0.2_0.0__3.0.0_0.0__3.1.1_0.0__3.2.0_0.1__eai_3.4_enpuv4.pmd
 PRODUCT_PACKAGES += fai__2.9.2_1.0__3.0.0_0.0__3.1.1_0.0__3.2.0_0.0__eai_3.4_enpuv4.pmd
 PRODUCT_PACKAGES += fai__3.0.0_0.0__eai_3.4_enpuv4.pmd
-PRODUCT_PACKAGES += fai__2.9.2_0.0__3.0.0_0.0__3.1.2_0.0__3.2.0_0.1__eai_3.4_enpuv4
-PRODUCT_PACKAGES += fai__8.0.3_0.0__3.0.0_0.0__3.1.2_0.0__3.2.0_0.1__eai_3.4_enpuv4
+PRODUCT_PACKAGES += fai__2.9.2_0.0__3.0.0_0.0__3.1.2_0.0__3.2.0_0.1__eai_3.4_enpuv4.pmd
+PRODUCT_PACKAGES += fai__8.0.3_0.0__3.0.0_0.0__3.1.2_0.0__3.2.0_0.1__eai_3.4_enpuv4.pmd
 
 # Audio configuration xml's related to Volcano
 QCV_FAMILY_SKUS := volcano
@@ -146,7 +147,12 @@ PRODUCT_COPY_FILES += \
     $(CONFIG_PAL_SRC_DIR)/card-defs.xml:$(TARGET_COPY_OUT_VENDOR)/etc/card-defs.xml \
     $(CONFIG_PAL_SRC_DIR)/mixer_paths_volcano_mtp.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_volcano_mtp.xml \
     $(CONFIG_PAL_SRC_DIR)/mixer_paths_volcano_mtp_wsa883x_wcd939x.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_volcano_mtp_wsa883x_wcd939x.xml \
+    $(CONFIG_PAL_SRC_DIR)/mixer_paths_volcano6i_mtp_hac_wsa883x.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_volcano6i_mtp_hac_wsa883x.xml \
     $(CONFIG_PAL_SRC_DIR)/mixer_paths_volcano6_mtp_wsa883x_wcd939x.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_volcano6_mtp_wsa883x_wcd939x.xml \
+    $(CONFIG_PAL_SRC_DIR)/mixer_paths_volcano6i_mtp_wsa883x.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_volcano6i_mtp_wsa883x.xml \
+    $(CONFIG_PAL_SRC_DIR)/mixer_paths_volcano6i_mtp_msl_wsa883x.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_volcano6i_mtp_msl_wsa883x.xml \
+    $(CONFIG_PAL_SRC_DIR)/mixer_paths_volcano6i_qrd_wsa883x.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_volcano6i_qrd_wsa883x.xml \
+    $(CONFIG_PAL_SRC_DIR)/mixer_paths_volcano6_cdp_wsa883x_wcd939x.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_volcano6_cdp_wsa883x_wcd939x.xml \
     $(CONFIG_PAL_SRC_DIR)/mixer_paths_volcano_cdp_wsa883x_wcd939x.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_volcano_cdp_wsa883x_wcd939x.xml \
     $(CONFIG_PAL_SRC_DIR)/mixer_paths_volcano_qrd.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_volcano_qrd.xml \
     $(CONFIG_PAL_SRC_DIR)/mixer_paths_volcano_mtp_sku1.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_volcano_mtp_sku1.xml \
@@ -154,8 +160,13 @@ PRODUCT_COPY_FILES += \
     $(CONFIG_PAL_SRC_DIR)/mixer_paths_volcano_cdp_wsa883x_wcd939x_sku1.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_volcano_cdp_wsa883x_wcd939x_sku1.xml \
     $(CONFIG_PAL_SRC_DIR)/mixer_paths_volcano_qrd_sku1.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_volcano_qrd_sku1.xml \
     $(CONFIG_PAL_SRC_DIR)/resourcemanager_volcano_mtp.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_volcano_mtp.xml \
+    $(CONFIG_PAL_SRC_DIR)/resourcemanager_volcano6i_mtp_hac_wsa883x.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_volcano6i_mtp_hac_wsa883x.xml \
     $(CONFIG_PAL_SRC_DIR)/resourcemanager_volcano_mtp_wsa883x_wcd939x.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_volcano_mtp_wsa883x_wcd939x.xml \
     $(CONFIG_PAL_SRC_DIR)/resourcemanager_volcano6_mtp_wsa883x_wcd939x.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_volcano6_mtp_wsa883x_wcd939x.xml \
+    $(CONFIG_PAL_SRC_DIR)/resourcemanager_volcano6i_mtp_wsa883x.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_volcano6i_mtp_wsa883x.xml \
+    $(CONFIG_PAL_SRC_DIR)/resourcemanager_volcano6i_mtp_msl_wsa883x.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_volcano6i_mtp_msl_wsa883x.xml \
+    $(CONFIG_PAL_SRC_DIR)/resourcemanager_volcano6i_qrd_wsa883x.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_volcano6i_qrd_wsa883x.xml \
+    $(CONFIG_PAL_SRC_DIR)/resourcemanager_volcano6_cdp_wsa883x_wcd939x.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_volcano6_cdp_wsa883x_wcd939x.xml \
     $(CONFIG_PAL_SRC_DIR)/resourcemanager_volcano_cdp_wsa883x_wcd939x.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_volcano_cdp_wsa883x_wcd939x.xml \
     $(CONFIG_PAL_SRC_DIR)/resourcemanager_volcano_qrd.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_volcano_qrd.xml \
     $(CONFIG_PAL_SRC_DIR)/resourcemanager_volcano_mtp_sku1.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_volcano_mtp_sku1.xml \

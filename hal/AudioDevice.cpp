@@ -801,7 +801,6 @@ void adev_close_input_stream(struct audio_hw_device *dev,
     AHAL_DBG("Enter:stream_handle(%p)", astream_in.get());
 
     adevice->CloseStreamIn(astream_in);
-    adevice->mute_ = false;
 
     AHAL_DBG("Exit");
 }
@@ -1246,6 +1245,7 @@ int AudioDevice::Init(hw_device_t **device, const hw_module_t *module) {
     current_rotation = PAL_SPEAKER_ROTATION_LR;
     mOffloadSpeedSupported = property_get_bool("vendor.audio.offload.playspeed", false);
     FillAndroidDeviceMap();
+    FillPalDeviceMap();
     audio_extn_gef_init(adev_);
     adev_init_ref_count += 1;
 
@@ -1673,7 +1673,7 @@ int AudioDevice::SetParameters(const char *kvpairs) {
                          }
                      }
                  }
-	    }
+            }
             /* check if capture profile is supported or not */
            if (audio_is_usb_out_device(device) || audio_is_usb_in_device(device)) {
                 pal_param_device_capability_t *device_cap_query = (pal_param_device_capability_t *)
@@ -2298,6 +2298,30 @@ int AudioDevice::SetParameters(const char *kvpairs) {
         }
     }
 
+    ret = str_parms_get_str(parms, "ns_level", value, sizeof(value));
+    if (ret >= 0) {
+        pal_param_ns_level_control_t param_ns_level_control;
+        int16_t maxValue = 0x7fff;
+        float percentagevalue = atoi(value);
+        if (percentagevalue < 0 || percentagevalue > 100) {
+            AHAL_ERR("Input ns_level invalid");
+            goto exit;
+        }
+        param_ns_level_control.ns_level = maxValue * (percentagevalue / 100);
+        ret = str_parms_get_str(parms, "stream_type", value, sizeof(value));
+        if (ret >= 0) {
+            if (nsLevelStreamPalMap.find(value) != nsLevelStreamPalMap.end()) {
+                param_ns_level_control.stream_type = nsLevelStreamPalMap.at(value);
+                ret = pal_set_param(PAL_PARAM_ID_NSLEVEL_CONTROL, (void*) &param_ns_level_control,
+                                       sizeof(pal_param_ns_level_control_t));
+                AHAL_INFO("Setting NSLevelValue = %d to stream %d", param_ns_level_control.ns_level,
+                                       param_ns_level_control.stream_type);
+            } else {
+                AHAL_ERR("Input stream type invalid");
+            }
+        }
+    }
+
 exit:
     if (parms)
         str_parms_destroy(parms);
@@ -2419,6 +2443,52 @@ char* AudioDevice::GetParameters(const char *keys) {
         }
     }
 
+    ret = str_parms_get_str(query, AUDIO_PARAMETER_KEY_MIC_OCCLUSION_INFO , value, sizeof(value));
+    if (ret >= 0) {
+        void *micInfo = nullptr;
+        std::string micOccInfoReply = "";
+        ret = pal_get_param(PAL_PARAM_ID_MIC_OCCLUSION_INFO,
+                            &micInfo, &size,
+                             nullptr);
+
+        auto micInfoVec = static_cast<std::vector<std::vector<pal_param_mic_occlusion_info_t>>*>(micInfo);
+
+        for (const auto& innerVector : *micInfoVec) {
+            micOccInfoReply += "{";
+            audio_devices_t dev_id = AUDIO_DEVICE_NONE;
+            micOccInfoReply += "Device:";
+            micOccInfoReply += getAndroidDevice(innerVector[0].id);
+            micOccInfoReply += "[";
+            for (int j = 0; j < innerVector.size(); j++) {
+                micOccInfoReply += "{";
+                micOccInfoReply += "MicType:";
+
+                if (j == 0) {
+                    micOccInfoReply += "PrimaryMic";
+                } else if (j == 1) {
+                    micOccInfoReply += "SecondaryMic";
+                }
+
+                micOccInfoReply += ",";
+                micOccInfoReply += " is_cur_occluded:";
+                micOccInfoReply += std::to_string(innerVector[j].is_occluded);
+                micOccInfoReply += ",";
+                micOccInfoReply += " num_of_occlusions:";
+                micOccInfoReply += std::to_string(innerVector[j].num_of_occlusion);
+                micOccInfoReply += ",";
+                micOccInfoReply += " num_of_recovery:";
+                micOccInfoReply += std::to_string(innerVector[j].num_of_recovery);
+                micOccInfoReply += "}";
+                micOccInfoReply += ",";
+            }
+            micOccInfoReply += "]";
+            micOccInfoReply += "}";
+        }
+        AHAL_DBG("%s: micInfo: %s",__func__, micOccInfoReply.c_str());
+        str_parms_add_str(reply, "mic_occlusion_info", micOccInfoReply.c_str());
+        delete micInfoVec;
+    }
+
     AudioExtn::audio_extn_get_parameters(adev_, query, reply);
     audio_extn_sound_trigger_get_parameters(adev_, query, reply);
     if (voice_)
@@ -2436,6 +2506,17 @@ exit:
         AHAL_VERBOSE("exit: returns - %s", str);
 
     return str;
+}
+
+const char* AudioDevice::getAndroidDevice(pal_device_id_t id) {
+    if (pal_device_map_.find(id) != pal_device_map_.end()) {
+        for (int i = 0; i < ARRAY_SIZE(device_in_types); i++) {
+            if (device_in_types[i].value == pal_device_map_[id]) {
+                return device_in_types[i].name;
+            }
+        }
+    }
+    return "AUDIO_DEVICE_NONE";
 }
 
 void AudioDevice::FillAndroidDeviceMap() {
@@ -2510,6 +2591,32 @@ void AudioDevice::FillAndroidDeviceMap() {
     //android_device_map_.insert(std::make_pair(AUDIO_DEVICE_IN_BLUETOOTH_BLE, PAL_DEVICE_IN_BLUETOOTH_BLE);
     //android_device_map_.insert(std::make_pair(AUDIO_DEVICE_IN_DEFAULT, PAL_DEVICE_IN_DEFAULT));
     android_device_map_.insert(std::make_pair(AUDIO_DEVICE_IN_ECHO_REFERENCE, PAL_DEVICE_IN_ECHO_REF));
+}
+
+/* Presently only created for IN devices. */
+void AudioDevice::FillPalDeviceMap() {
+    pal_device_map_.clear();
+
+    /* go through all in devices and pushback */
+
+    pal_device_map_.insert(std::make_pair(PAL_DEVICE_IN_HANDSET_MIC, AUDIO_DEVICE_IN_BUILTIN_MIC));
+    pal_device_map_.insert(std::make_pair(PAL_DEVICE_IN_SPEAKER_MIC, AUDIO_DEVICE_IN_BACK_MIC));
+    pal_device_map_.insert(std::make_pair(PAL_DEVICE_IN_BLUETOOTH_SCO_HEADSET, AUDIO_DEVICE_IN_BLUETOOTH_SCO_HEADSET));
+    pal_device_map_.insert(std::make_pair(PAL_DEVICE_IN_WIRED_HEADSET, AUDIO_DEVICE_IN_WIRED_HEADSET));
+    pal_device_map_.insert(std::make_pair(PAL_DEVICE_IN_AUX_DIGITAL, AUDIO_DEVICE_IN_AUX_DIGITAL));
+    pal_device_map_.insert(std::make_pair(PAL_DEVICE_IN_HDMI, AUDIO_DEVICE_IN_HDMI));
+    pal_device_map_.insert(std::make_pair(PAL_DEVICE_IN_TELEPHONY_RX, AUDIO_DEVICE_IN_TELEPHONY_RX));
+    pal_device_map_.insert(std::make_pair(PAL_DEVICE_IN_USB_ACCESSORY, AUDIO_DEVICE_IN_USB_ACCESSORY));
+    pal_device_map_.insert(std::make_pair(PAL_DEVICE_IN_USB_DEVICE, AUDIO_DEVICE_IN_USB_HEADSET));
+    pal_device_map_.insert(std::make_pair(PAL_DEVICE_IN_FM_TUNER, AUDIO_DEVICE_IN_FM_TUNER));
+    pal_device_map_.insert(std::make_pair(PAL_DEVICE_IN_LINE, AUDIO_DEVICE_IN_LINE));
+    pal_device_map_.insert(std::make_pair(PAL_DEVICE_IN_SPDIF, AUDIO_DEVICE_IN_SPDIF));
+    pal_device_map_.insert(std::make_pair(PAL_DEVICE_IN_BLUETOOTH_A2DP, AUDIO_DEVICE_IN_BLUETOOTH_A2DP));
+    pal_device_map_.insert(std::make_pair(PAL_DEVICE_IN_PROXY, AUDIO_DEVICE_IN_PROXY));
+    pal_device_map_.insert(std::make_pair(PAL_DEVICE_IN_USB_HEADSET, AUDIO_DEVICE_IN_USB_HEADSET));
+#ifdef EC_REF_CAPTURE_ENABLED
+    pal_device_map_.insert(std::make_pair(PAL_DEVICE_IN_ECHO_REF, AUDIO_DEVICE_IN_ECHO_REFERENCE));
+#endif
 }
 
 int AudioDevice::GetPalDeviceIds(const std::set<audio_devices_t>& hal_device_ids,

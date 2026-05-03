@@ -26,9 +26,9 @@
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
  *
- * Copyright (c) 2022-2024, Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -46,7 +46,6 @@
 #include <inttypes.h>
 
 #include <chrono>
-#include <thread>
 
 #include "PalApi.h"
 #include <audio_effects/effect_aec.h>
@@ -99,20 +98,20 @@ static void setup_hdr_usecase(struct pal_device* palInDevice) {
     bool orientationInverted = adevice->inverted;
 
     if (orientationLandscape && !orientationInverted) {
-        strlcpy(palInDevice->custom_config.custom_key,
-            "unprocessed-hdr-mic-landscape",
+        strlcat(palInDevice->custom_config.custom_key,
+            "unprocessed-hdr-mic-landscape;",
             sizeof(palInDevice->custom_config.custom_key));
     } else if (!orientationLandscape && !orientationInverted) {
-        strlcpy(palInDevice->custom_config.custom_key,
-            "unprocessed-hdr-mic-portrait",
+        strlcat(palInDevice->custom_config.custom_key,
+            "unprocessed-hdr-mic-portrait;",
             sizeof(palInDevice->custom_config.custom_key));
     } else if (orientationLandscape && orientationInverted) {
-        strlcpy(palInDevice->custom_config.custom_key,
-            "unprocessed-hdr-mic-inverted-landscape",
+        strlcat(palInDevice->custom_config.custom_key,
+            "unprocessed-hdr-mic-inverted-landscape;",
             sizeof(palInDevice->custom_config.custom_key));
     } else if (!orientationLandscape && orientationInverted) {
-        strlcpy(palInDevice->custom_config.custom_key,
-            "unprocessed-hdr-mic-inverted-portrait",
+        strlcat(palInDevice->custom_config.custom_key,
+            "unprocessed-hdr-mic-inverted-portrait;",
             sizeof(palInDevice->custom_config.custom_key));
     }
     AHAL_INFO("Setting custom key as %s",
@@ -376,13 +375,25 @@ static int astream_out_mmap_noirq_start(const struct audio_stream_out *stream)
         return -EINVAL;
     }
 
+    AHAL_DBG("Enter\n");
+
     astream_out = adevice->OutGetStream((audio_stream_t*)stream);
     if (!astream_out) {
         AHAL_ERR("unable to get audio OutStream");
         return -EINVAL;
     }
 
-    return astream_out->Start();
+    if (astream_out->mmap_start_thread_.joinable()) {
+        AHAL_INFO("Waiting for Start thread\n");
+        astream_out->mmap_start_thread_.join();
+    }
+
+    if (!astream_out->isStarted())
+        astream_out->mmap_start_ret_ =  astream_out->Start();
+
+    AHAL_DBG("Exit\n");
+
+    return astream_out->mmap_start_ret_;
 }
 
 static int astream_out_mmap_noirq_stop(const struct audio_stream_out *stream)
@@ -395,13 +406,23 @@ static int astream_out_mmap_noirq_stop(const struct audio_stream_out *stream)
         return -EINVAL;
     }
 
+    AHAL_DBG("Enter\n");
+
     astream_out = adevice->OutGetStream((audio_stream_t*)stream);
     if (!astream_out) {
         AHAL_ERR("unable to get audio OutStream");
         return -EINVAL;
     }
 
-    return astream_out->Stop();
+    // Reset mmap buffer to avoid rendering stale data
+    int ret = astream_out->ResetMmapBuffer();
+    if (ret != 0) {
+        AHAL_ERR("Reset Mmap buffer failed (%d), falling back to stream stop", ret);
+        return astream_out->Stop();
+    }
+
+    AHAL_DBG("Exit\n");
+    return 0;
 }
 
 static int astream_out_create_mmap_buffer(const struct audio_stream_out *stream,
@@ -415,6 +436,8 @@ static int astream_out_create_mmap_buffer(const struct audio_stream_out *stream,
         AHAL_ERR("unable to get audio device");
         return -EINVAL;
     }
+
+    AHAL_DBG("Enter\n");
 
     astream_out = adevice->OutGetStream((audio_stream_t*)stream);
     if (!astream_out) {
@@ -434,6 +457,8 @@ static int astream_out_create_mmap_buffer(const struct audio_stream_out *stream,
     ret = astream_out->CreateMmapBuffer(min_size_frames, info);
     if (ret)
         AHAL_ERR("failed %d\n", ret);
+
+    AHAL_DBG("Exit\n");
 
     return ret;
 }
@@ -2139,6 +2164,20 @@ int StreamOutPrimary::FillHalFnPtrs() {
     return ret;
 }
 
+int StreamOutPrimary::ResetMmapBuffer()
+{
+    AHAL_DBG("Enter\n");
+
+    if (!pal_stream_handle_) {
+        AHAL_ERR("pal_stream_handle_ is null\n");
+        return -EINVAL;
+    }
+
+    int ret = pal_stream_reset_mmap_buf(pal_stream_handle_);
+    AHAL_DBG("Exit: ret=%d\n", ret);
+    return ret;
+}
+
 int StreamOutPrimary::GetMmapPosition(struct audio_mmap_position *position)
 {
     struct pal_mmap_position pal_mmap_pos;
@@ -2147,7 +2186,7 @@ int StreamOutPrimary::GetMmapPosition(struct audio_mmap_position *position)
     if (pal_stream_handle_ == nullptr) {
         AHAL_ERR("error pal handle is null\n");
         stream_mutex_.unlock();
-        return -EINVAL;
+        return -ENODATA;
     }
 
     ret = pal_stream_get_mmap_position(pal_stream_handle_, &pal_mmap_pos);
@@ -2188,10 +2227,16 @@ int StreamOutPrimary::CreateMmapBuffer(int32_t min_size_frames,
     struct pal_mmap_buffer palMmapBuf;
 
     stream_mutex_.lock();
+
     if (pal_stream_handle_) {
-        AHAL_ERR("error pal handle already created\n");
-        stream_mutex_.unlock();
-        return -EINVAL;
+        AHAL_DBG("Pal stream exists, return mmap buffer\n");
+        info->shared_memory_address = palMmapBuf_.buffer;
+        info->shared_memory_fd = palMmapBuf_.fd;
+        info->buffer_size_frames = palMmapBuf_.buffer_size_frames;
+        info->burst_size_frames = palMmapBuf_.burst_size_frames;
+        info->flags = (audio_mmap_buffer_flag) AUDIO_MMAP_APPLICATION_SHAREABLE;
+        ret = 0;
+        goto exit;
     }
 
     ret = Open();
@@ -2216,7 +2261,20 @@ int StreamOutPrimary::CreateMmapBuffer(int32_t min_size_frames,
     info->flags = (audio_mmap_buffer_flag) AUDIO_MMAP_APPLICATION_SHAREABLE;
     mmap_shared_memory_fd = info->shared_memory_fd;
 
+    palMmapBuf_ = palMmapBuf;
+
+exit:
     stream_mutex_.unlock();
+
+    if (!stream_started_) {
+        mmap_start_thread_ = std::thread([this]() {
+            struct sched_param param;
+            param.sched_priority = sched_get_priority_max(SCHED_FIFO);
+            pthread_setschedparam(pthread_self(), SCHED_FIFO, &param);
+            mmap_start_ret_ = this->Start();
+        });
+    }
+
     return ret;
 }
 
@@ -2232,6 +2290,7 @@ int StreamOutPrimary::Stop() {
         if (ret == 0) {
             stream_started_ = false;
             stream_paused_ = false;
+            mmap_start_ret_ = -ENOSYS;
         }
     }
     stream_mutex_.unlock();
@@ -2425,6 +2484,10 @@ int StreamOutPrimary::Standby() {
                 GetFrames(&mCachedPosition);
             }
         }
+
+        if (usecase_ == USECASE_AUDIO_PLAYBACK_MMAP && mmap_start_thread_.joinable())
+            mmap_start_thread_.join();
+
         ret = pal_stream_stop(pal_stream_handle_);
         if (ret) {
             AHAL_ERR("failed to stop stream.");
@@ -2446,7 +2509,7 @@ int StreamOutPrimary::Standby() {
         ret = StopOffloadVisualizer(handle_, pal_stream_handle_);
     }
 
-    if (pal_stream_handle_) {
+    if (pal_stream_handle_ && usecase_ != USECASE_AUDIO_PLAYBACK_MMAP) {
         ret = pal_stream_close(pal_stream_handle_);
         pal_stream_handle_ = NULL;
         if (usecase_ == USECASE_AUDIO_PLAYBACK_WITH_HAPTICS && pal_haptics_stream_handle) {
@@ -2475,11 +2538,6 @@ int StreamOutPrimary::Standby() {
                 ret = 0;
             }
         }
-    }
-
-    if (mmap_shared_memory_fd >= 0) {
-        close(mmap_shared_memory_fd);
-        mmap_shared_memory_fd = -1;
     }
 
     if (ret)
@@ -2602,7 +2660,7 @@ int StreamOutPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, 
 
             if ((AudioExtn::audio_devices_cmp(mAndroidOutDevices, AUDIO_DEVICE_OUT_SPEAKER_SAFE)) &&
                                    (mPalOutDeviceIds[i] == PAL_DEVICE_OUT_SPEAKER)) {
-                strlcpy(mPalOutDevice[i].custom_config.custom_key, "speaker-safe",
+                strlcat(mPalOutDevice[i].custom_config.custom_key, "speaker-safe;",
                         sizeof(mPalOutDevice[i].custom_config.custom_key));
                 AHAL_INFO("Setting custom key as %s", mPalOutDevice[i].custom_config.custom_key);
             }
@@ -2610,7 +2668,7 @@ int StreamOutPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, 
             if (((AudioExtn::audio_devices_cmp(mAndroidOutDevices, AUDIO_DEVICE_OUT_SPEAKER)) &&
                                    (mPalOutDeviceIds[i] == PAL_DEVICE_OUT_SPEAKER)) &&
                                     property_get_bool("vendor.audio.mspp.enable", false)) {
-                strlcpy(mPalOutDevice[i].custom_config.custom_key, "mspp",
+                strlcat(mPalOutDevice[i].custom_config.custom_key, "mspp;",
                         sizeof(mPalOutDevice[i].custom_config.custom_key));
                 AHAL_INFO("Setting custom key as %s", mPalOutDevice[i].custom_config.custom_key);
             }
@@ -2622,15 +2680,78 @@ int StreamOutPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, 
 
                 AHAL_DBG("hifi-filter custom key sent to PAL (only applicable to certain streams)\n");
 
-                strlcpy(mPalOutDevice[i].custom_config.custom_key,
-                       "hifi-filter_custom_key",
+                strlcat(mPalOutDevice[i].custom_config.custom_key,
+                       "hifi-filter_custom_key;",
                        sizeof(mPalOutDevice[i].custom_config.custom_key));
             }
+
+#ifdef DYNAMIC_SR_ENABLED
+            if (((usecase_ == USECASE_AUDIO_PLAYBACK_VOIP) ||
+                  (usecase_ == USECASE_AUDIO_PLAYBACK_DEEP_BUFFER) ||
+                  (isOffloadUsecase())) &&
+                 ((mPalOutDevice[i].id == PAL_DEVICE_OUT_SPEAKER) ||
+                  (mPalOutDevice[i].id == PAL_DEVICE_OUT_HANDSET) ||
+                  (mPalOutDevice[i].id == PAL_DEVICE_OUT_WIRED_HEADPHONE) ||
+                  (mPalOutDevice[i].id == PAL_DEVICE_OUT_WIRED_HEADSET)||
+                  (mPalOutDevice[i].id == PAL_DEVICE_OUT_USB_DEVICE) ||
+                  (mPalOutDevice[i].id == PAL_DEVICE_OUT_USB_HEADSET))) {
+                if (config_.sample_rate == 8000) {
+                    strlcat(mPalOutDevice[i].custom_config.custom_key, "8K;",
+                    sizeof(mPalOutDevice[i].custom_config.custom_key));
+                } else if (config_.sample_rate == 11025) {
+                    strlcat(mPalOutDevice[i].custom_config.custom_key, "11K;",
+                    sizeof(mPalOutDevice[i].custom_config.custom_key));
+                } else if (config_.sample_rate == 16000) {
+                     strlcat(mPalOutDevice[i].custom_config.custom_key, "16K;",
+                     sizeof(mPalOutDevice[i].custom_config.custom_key));
+                } else if (config_.sample_rate == 22050) {
+                     strlcat(mPalOutDevice[i].custom_config.custom_key, "22K;",
+                     sizeof(mPalOutDevice[i].custom_config.custom_key));
+                } else if (config_.sample_rate == 24000) {
+                     strlcat(mPalOutDevice[i].custom_config.custom_key, "24K;",
+                     sizeof(mPalOutDevice[i].custom_config.custom_key));
+                } else if (config_.sample_rate == 32000) {
+                    strlcat(mPalOutDevice[i].custom_config.custom_key, "32K;",
+                    sizeof(mPalOutDevice[i].custom_config.custom_key));
+                } else if (config_.sample_rate == 44100) {
+                    strlcat(mPalOutDevice[i].custom_config.custom_key, "44.1K;",
+                    sizeof(mPalOutDevice[i].custom_config.custom_key));
+                } else if (config_.sample_rate == 48000) {
+                    strlcat(mPalOutDevice[i].custom_config.custom_key, "48K;",
+                    sizeof(mPalOutDevice[i].custom_config.custom_key));
+                } else if (config_.sample_rate == 64000) {
+                    strlcat(mPalOutDevice[i].custom_config.custom_key, "64K;",
+                    sizeof(mPalOutDevice[i].custom_config.custom_key));
+                } else if (config_.sample_rate == 88200) {
+                    strlcat(mPalOutDevice[i].custom_config.custom_key, "88.2K;",
+                    sizeof(mPalOutDevice[i].custom_config.custom_key));
+                } else if (config_.sample_rate == 96000) {
+                    strlcat(mPalOutDevice[i].custom_config.custom_key, "96K;",
+                    sizeof(mPalOutDevice[i].custom_config.custom_key));
+                } else if (config_.sample_rate == 176400) {
+                    strlcat(mPalOutDevice[i].custom_config.custom_key, "176.4K;",
+                    sizeof(mPalOutDevice[i].custom_config.custom_key));
+                } else if (config_.sample_rate == 192000) {
+                    strlcat(mPalOutDevice[i].custom_config.custom_key, "192K;",
+                    sizeof(mPalOutDevice[i].custom_config.custom_key));
+                } else if (config_.sample_rate == 352800) {
+                    strlcat(mPalOutDevice[i].custom_config.custom_key, "352.8K;",
+                    sizeof(mPalOutDevice[i].custom_config.custom_key));
+                } else if (config_.sample_rate == 384000) {
+                    strlcat(mPalOutDevice[i].custom_config.custom_key, "384K;",
+                    sizeof(mPalOutDevice[i].custom_config.custom_key));
+                } else {
+                    AHAL_DBG("No custom config to set for usecase %d for sr %d",
+                             usecase_, config_.sample_rate);
+                }
+                AHAL_DBG("setting SR for usecase %d as %d", usecase_, config_.sample_rate);
+            }
+#endif
         }
 
         std::shared_ptr<AudioDevice> adevice = AudioDevice::GetInstance();
         if (adevice->hac_voip && (mPalOutDevice->id == PAL_DEVICE_OUT_HANDSET)) {
-             strlcpy(mPalOutDevice->custom_config.custom_key, "HAC",
+             strlcpy(mPalOutDevice->custom_config.custom_key, "HAC;",
                     sizeof(mPalOutDevice->custom_config.custom_key));
         }
 
@@ -2924,10 +3045,10 @@ exit:
         if (ret != 0) {
             AHAL_ERR("Failed to get mmap position %d", ret);
         } else {
-            AHAL_INFO("mmap position is %d", position.position_frames);
+            AHAL_VERBOSE("mmap position is %d", position.position_frames);
             signed_frames = position.position_frames -
               (MMAP_PLATFORM_DELAY * (streamAttributes_.out_media_config.sample_rate) / 1000000LL);
-            AHAL_INFO("mmap signed frames %llu", signed_frames);
+            AHAL_VERBOSE("mmap signed frames %llu", signed_frames);
         }
     }
 
@@ -3219,8 +3340,8 @@ int StreamOutPrimary::Open() {
 
         AHAL_DBG("hifi-filter custom key sent to PAL (only applicable to certain streams)\n");
 
-        strlcpy(mPalOutDevice->custom_config.custom_key,
-                "hifi-filter_custom_key",
+        strlcat(mPalOutDevice->custom_config.custom_key,
+                "hifi-filter_custom_key;",
                 sizeof(mPalOutDevice->custom_config.custom_key));
     }
 
@@ -3245,7 +3366,7 @@ int StreamOutPrimary::Open() {
     }
 
     if (adevice->hac_voip && (mPalOutDevice->id == PAL_DEVICE_OUT_HANDSET)) {
-        strlcpy(mPalOutDevice->custom_config.custom_key, "HAC",
+        strlcat(mPalOutDevice->custom_config.custom_key, "HAC;",
                 sizeof(mPalOutDevice->custom_config.custom_key));
     }
 
@@ -4330,7 +4451,7 @@ StreamOutPrimary::StreamOutPrimary(
 
         if ((AudioExtn::audio_devices_cmp(mAndroidOutDevices, AUDIO_DEVICE_OUT_SPEAKER_SAFE)) &&
                                    (mPalOutDeviceIds[i] == PAL_DEVICE_OUT_SPEAKER)) {
-            strlcpy(mPalOutDevice[i].custom_config.custom_key, "speaker-safe",
+            strlcat(mPalOutDevice[i].custom_config.custom_key, "speaker-safe;",
                      sizeof(mPalOutDevice[i].custom_config.custom_key));
             AHAL_INFO("Setting custom key as %s", mPalOutDevice[i].custom_config.custom_key);
         }
@@ -4338,9 +4459,72 @@ StreamOutPrimary::StreamOutPrimary(
         if (((AudioExtn::audio_devices_cmp(mAndroidOutDevices, AUDIO_DEVICE_OUT_SPEAKER)) &&
                                (mPalOutDeviceIds[i] == PAL_DEVICE_OUT_SPEAKER)) &&
                                 property_get_bool("vendor.audio.mspp.enable", false)) {
-            strlcpy(mPalOutDevice[i].custom_config.custom_key, "mspp",
+            strlcat(mPalOutDevice[i].custom_config.custom_key, "mspp;",
                     sizeof(mPalOutDevice[i].custom_config.custom_key));
             AHAL_INFO("Setting custom key as %s", mPalOutDevice[i].custom_config.custom_key);
+        }
+
+#ifdef DYNAMIC_SR_ENABLED
+        if (((usecase_ == USECASE_AUDIO_PLAYBACK_VOIP) ||
+              (usecase_ == USECASE_AUDIO_PLAYBACK_DEEP_BUFFER) ||
+              (isOffloadUsecase())) &&
+             ((mPalOutDevice[i].id == PAL_DEVICE_OUT_SPEAKER) ||
+              (mPalOutDevice[i].id == PAL_DEVICE_OUT_HANDSET) ||
+              (mPalOutDevice[i].id == PAL_DEVICE_OUT_WIRED_HEADPHONE) ||
+              (mPalOutDevice[i].id == PAL_DEVICE_OUT_WIRED_HEADSET)||
+              (mPalOutDevice[i].id == PAL_DEVICE_OUT_USB_DEVICE) ||
+              (mPalOutDevice[i].id == PAL_DEVICE_OUT_USB_HEADSET))) {
+           if (config_.sample_rate == 8000) {
+                strlcat(mPalOutDevice[i].custom_config.custom_key, "8K;",
+                sizeof(mPalOutDevice[i].custom_config.custom_key));
+            } else if (config_.sample_rate == 11025) {
+                 strlcat(mPalOutDevice[i].custom_config.custom_key, "11K;",
+                 sizeof(mPalOutDevice[i].custom_config.custom_key));
+            } else if (config_.sample_rate == 16000) {
+                 strlcat(mPalOutDevice[i].custom_config.custom_key, "16K;",
+                 sizeof(mPalOutDevice[i].custom_config.custom_key));
+            } else if (config_.sample_rate == 22050) {
+                 strlcat(mPalOutDevice[i].custom_config.custom_key, "22K;",
+                 sizeof(mPalOutDevice[i].custom_config.custom_key));
+            } else if (config_.sample_rate == 24000) {
+                 strlcat(mPalOutDevice[i].custom_config.custom_key, "24K;",
+                 sizeof(mPalOutDevice[i].custom_config.custom_key));
+            } else if (config_.sample_rate == 32000) {
+                strlcat(mPalOutDevice[i].custom_config.custom_key, "32K;",
+                sizeof(mPalOutDevice[i].custom_config.custom_key));
+            } else if (config_.sample_rate == 44100) {
+                strlcat(mPalOutDevice[i].custom_config.custom_key, "44.1K;",
+                sizeof(mPalOutDevice[i].custom_config.custom_key));
+            } else if (config_.sample_rate == 48000) {
+                strlcat(mPalOutDevice[i].custom_config.custom_key, "48K;",
+                sizeof(mPalOutDevice[i].custom_config.custom_key));
+            } else if (config_.sample_rate == 64000) {
+                strlcat(mPalOutDevice[i].custom_config.custom_key, "64K;",
+                sizeof(mPalOutDevice[i].custom_config.custom_key));
+            } else if (config_.sample_rate == 88200) {
+                strlcat(mPalOutDevice[i].custom_config.custom_key, "88.2K;",
+                sizeof(mPalOutDevice[i].custom_config.custom_key));
+            } else if (config_.sample_rate == 96000) {
+                strlcat(mPalOutDevice[i].custom_config.custom_key, "96K;",
+                sizeof(mPalOutDevice[i].custom_config.custom_key));
+            } else if (config_.sample_rate == 176400) {
+                strlcat(mPalOutDevice[i].custom_config.custom_key, "176.4K;",
+                sizeof(mPalOutDevice[i].custom_config.custom_key));
+            } else if (config_.sample_rate == 192000) {
+                strlcat(mPalOutDevice[i].custom_config.custom_key, "192K;",
+                sizeof(mPalOutDevice[i].custom_config.custom_key));
+            } else if (config_.sample_rate == 352800) {
+                strlcat(mPalOutDevice[i].custom_config.custom_key, "352.8K;",
+                sizeof(mPalOutDevice[i].custom_config.custom_key));
+            } else if (config_.sample_rate == 384000) {
+                strlcat(mPalOutDevice[i].custom_config.custom_key, "384K;",
+                sizeof(mPalOutDevice[i].custom_config.custom_key));
+            } else {
+                AHAL_DBG("No custom config to set for usecase %d for sr %d",
+                         usecase_, config_.sample_rate);
+            }
+            AHAL_DBG("setting SR for usecase %d as %d", usecase_, config_.sample_rate);
+#endif
         }
     }
 
@@ -4386,8 +4570,21 @@ StreamOutPrimary::~StreamOutPrimary() {
             StopOffloadVisualizer(handle_, pal_stream_handle_);
         }
 
+        if (usecase_ == USECASE_AUDIO_PLAYBACK_MMAP) {
+            if (mmap_start_thread_.joinable())
+                mmap_start_thread_.join();
+
+            if(stream_started_)
+                pal_stream_stop(pal_stream_handle_);
+        }
+
         pal_stream_close(pal_stream_handle_);
         pal_stream_handle_ = nullptr;
+
+        if (mmap_shared_memory_fd >= 0) {
+            close(mmap_shared_memory_fd);
+            mmap_shared_memory_fd = -1;
+        }
     }
 
     if (pal_haptics_stream_handle) {
@@ -4526,7 +4723,7 @@ int StreamInPrimary::GetMmapPosition(struct audio_mmap_position *position)
     if (pal_stream_handle_ == nullptr) {
         AHAL_ERR("error pal handle is null\n");
         stream_mutex_.unlock();
-        return -EINVAL;
+        return -ENODATA;
     }
 
     ret = pal_stream_get_mmap_position(pal_stream_handle_, &pal_mmap_pos);
@@ -4877,7 +5074,7 @@ int StreamInPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, b
                     sizeof(mPalInDevice[i].custom_config.custom_key));
 
             if (source_ == AUDIO_SOURCE_CAMCORDER && adevice->cameraOrientation == CAMERA_DEFAULT) {
-                strlcpy(mPalInDevice[i].custom_config.custom_key, "camcorder_landscape",
+                strlcat(mPalInDevice[i].custom_config.custom_key, "camcorder_landscape;",
                         sizeof(mPalInDevice[i].custom_config.custom_key));
                 AHAL_INFO("Setting custom key as %s", mPalInDevice[i].custom_config.custom_key);
             }
@@ -4887,6 +5084,32 @@ int StreamInPrimary::RouteStream(const std::set<audio_devices_t>& new_devices, b
                 ((get_hdr_mode() == AUDIO_RECORD_SPF_HDR) &&
                 (source_ == AUDIO_SOURCE_CAMCORDER || source_ == AUDIO_SOURCE_MIC)))
                 setup_hdr_usecase(&mPalInDevice[i]);
+
+#ifdef DYNAMIC_SR_ENABLED
+            if (((usecase_ == USECASE_AUDIO_RECORD_VOIP) ||
+                 (usecase_ == USECASE_AUDIO_RECORD)) &&
+                ((mPalInDevice[i].id == PAL_DEVICE_IN_HANDSET_MIC) ||
+                 (mPalInDevice[i].id == PAL_DEVICE_IN_SPEAKER_MIC) ||
+                 (mPalInDevice[i].id == PAL_DEVICE_IN_WIRED_HEADSET))) {
+                if (config_.sample_rate == 8000) {
+                    strlcat(mPalInDevice[i].custom_config.custom_key, "8K;",
+                    sizeof(mPalInDevice[i].custom_config.custom_key));
+                } else if (config_.sample_rate == 16000) {
+                     strlcat(mPalInDevice[i].custom_config.custom_key, "16K;",
+                     sizeof(mPalInDevice[i].custom_config.custom_key));
+                } else if (config_.sample_rate == 32000) {
+                    strlcat(mPalInDevice[i].custom_config.custom_key, "32K;",
+                    sizeof(mPalInDevice[i].custom_config.custom_key));
+                } else if (config_.sample_rate == 48000) {
+                    strlcat(mPalInDevice[i].custom_config.custom_key, "48K;",
+                    sizeof(mPalInDevice[i].custom_config.custom_key));
+                } else {
+                    AHAL_DBG("No custom config to set for usecase %d for sr %d",
+                             usecase_, config_.sample_rate);
+                }
+                AHAL_DBG("setting SR for usecase %d as %d", usecase_, config_.sample_rate);
+            }
+#endif
         }
 
         mAndroidInDevices = new_devices;
@@ -5612,8 +5835,6 @@ StreamInPrimary::StreamInPrimary(audio_io_handle_t handle,
             mPalInDevice[i].address.card_id = adevice->usb_card_id_;
             mPalInDevice[i].address.device_num = adevice->usb_dev_num_;
         }
-        strlcpy(mPalInDevice[i].custom_config.custom_key, "",
-                sizeof(mPalInDevice[i].custom_config.custom_key));
 
         /* HDR use case check */
         if ((source_ == AUDIO_SOURCE_UNPROCESSED) &&
@@ -5627,14 +5848,60 @@ StreamInPrimary::StreamInPrimary(audio_io_handle_t handle,
                 }
             }
         }
+    }
+
+    usecase_ = GetInputUseCase(flags, source);
+    for (int i = 0; i < mAndroidInDevices.size(); i++) {
+        memset(mPalInDevice[i].custom_config.custom_key, 0,
+               sizeof(mPalInDevice[i].custom_config.custom_key));
+
+        strlcpy(mPalInDevice[i].custom_config.custom_key, "",
+                sizeof(mPalInDevice[i].custom_config.custom_key));
 
         if (source_ == AUDIO_SOURCE_CAMCORDER && adevice->cameraOrientation == CAMERA_DEFAULT) {
-            strlcpy(mPalInDevice[i].custom_config.custom_key, "camcorder_landscape",
+            strlcat(mPalInDevice[i].custom_config.custom_key, "camcorder_landscape;",
                     sizeof(mPalInDevice[i].custom_config.custom_key));
             AHAL_INFO("Setting custom key as %s", mPalInDevice[i].custom_config.custom_key);
         }
 
-        usecase_ = GetInputUseCase(flags, source);
+#ifdef DYNAMIC_SR_ENABLED
+        if (((usecase_ == USECASE_AUDIO_RECORD_VOIP) ||
+             (usecase_ == USECASE_AUDIO_RECORD)) &&
+            ((mPalInDevice[i].id == PAL_DEVICE_IN_HANDSET_MIC) ||
+             (mPalInDevice[i].id == PAL_DEVICE_IN_SPEAKER_MIC) ||
+             (mPalInDevice[i].id == PAL_DEVICE_IN_WIRED_HEADSET))) {
+            if (config_.sample_rate == 8000) {
+                strlcat(mPalInDevice[i].custom_config.custom_key, "8K;",
+                sizeof(mPalInDevice[i].custom_config.custom_key));
+            } else if (config_.sample_rate == 16000) {
+                 strlcat(mPalInDevice[i].custom_config.custom_key, "16K;",
+                 sizeof(mPalInDevice[i].custom_config.custom_key));
+            } else if (config_.sample_rate == 32000) {
+                strlcat(mPalInDevice[i].custom_config.custom_key, "32K;",
+                sizeof(mPalInDevice[i].custom_config.custom_key));
+            } else if (config_.sample_rate == 48000) {
+                strlcat(mPalInDevice[i].custom_config.custom_key, "48K;",
+                sizeof(mPalInDevice[i].custom_config.custom_key));
+            } else {
+                AHAL_DBG("No custom config to set for usecase %d for sr %d",
+                         usecase_, config_.sample_rate);
+            }
+            AHAL_DBG("setting SR for usecase %d as %d", usecase_, config_.sample_rate);
+        }
+#endif
+
+#ifdef TRUE_STEREO_ENABLED
+        if (source_ == AUDIO_SOURCE_DEFAULT || source_ == AUDIO_SOURCE_MIC || source_ == AUDIO_SOURCE_CAMCORDER) {
+            uint8_t channels =
+                audio_channel_count_from_in_mask(config_.channel_mask);
+            if (channels == 2) {
+                strlcat(mPalInDevice[i].custom_config.custom_key, "dual-mic-true-stereo;",
+                        sizeof(mPalInDevice[i].custom_config.custom_key));
+                AHAL_INFO("Setting custom key as %s", mPalInDevice[i].custom_config.custom_key);
+            }
+        }
+#endif
+
         if (usecase_ == USECASE_AUDIO_RECORD_LOW_LATENCY ||
             usecase_ == USECASE_AUDIO_RECORD_MMAP) {
             uint8_t channels =

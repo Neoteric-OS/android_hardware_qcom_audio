@@ -26,9 +26,9 @@
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
+ * Changes from Qualcomm Technologies, Inc. are provided under the following license:
  *
- * Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -40,6 +40,7 @@
 
 #include <set>
 #include <string>
+#include <thread>
 
 #include <cutils/properties.h>
 #include <hardware/audio.h>
@@ -529,6 +530,7 @@ protected:
     struct pal_volume_data *volume_; /* used to cache volume */
     std::map <audio_devices_t, pal_device_id_t> mAndroidDeviceMap;
     int mmap_shared_memory_fd;
+    struct pal_mmap_buffer palMmapBuf_;
     pal_param_device_capability_t *device_cap_query_;
 };
 
@@ -542,9 +544,25 @@ private:
     pal_device_id_t* mPalOutDeviceIds;
     std::set<audio_devices_t> mAndroidOutDevices;
     bool mInitialized;
+    bool isOffloadUsecase() {
+        int usecase = GetUseCase();
+        switch (usecase) {
+            case USECASE_AUDIO_PLAYBACK_OFFLOAD:
+            case USECASE_AUDIO_PLAYBACK_OFFLOAD2:
+            case USECASE_AUDIO_PLAYBACK_OFFLOAD3:
+            case USECASE_AUDIO_PLAYBACK_OFFLOAD4:
+            case USECASE_AUDIO_PLAYBACK_OFFLOAD5:
+            case USECASE_AUDIO_PLAYBACK_OFFLOAD6:
+            case USECASE_AUDIO_PLAYBACK_OFFLOAD7:
+            case USECASE_AUDIO_PLAYBACK_OFFLOAD8:
+            case USECASE_AUDIO_PLAYBACK_OFFLOAD9:
+                return true;
+            default:
+                return false;
+        }
+    }
 
     // [offload playspeed
-    bool isOffloadUsecase() { return GetUseCase() == USECASE_AUDIO_PLAYBACK_OFFLOAD; }
     bool isOffloadSpeedSupported();
 
     bool isValidPlaybackRate(const audio_playback_rate_t *playbackRate);
@@ -608,6 +626,9 @@ public:
     std::vector<playback_track_metadata_t> tracks;
     int SetAggregateSourceMetadata(bool voice_active);
     static std::mutex sourceMetadata_mutex_;
+    std::thread mmap_start_thread_;
+    int mmap_start_ret_;
+    int ResetMmapBuffer();
 
     // [offload playback speed
     int getPlaybackRateParameters(audio_playback_rate_t *playbackRate);
