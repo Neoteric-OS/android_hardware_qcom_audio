@@ -40,6 +40,7 @@
 #include "AudioDevice.h"
 #include "AudioStream.h"
 
+#include <dlfcn.h>
 #include <log/log.h>
 #include <utils/Trace.h>
 #include <cutils/properties.h>
@@ -2173,7 +2174,15 @@ int StreamOutPrimary::ResetMmapBuffer()
         return -EINVAL;
     }
 
-    int ret = pal_stream_reset_mmap_buf(pal_stream_handle_);
+    using pal_stream_reset_mmap_buf_t = int32_t (*)(pal_stream_handle_t *);
+    auto reset_mmap_buf = reinterpret_cast<pal_stream_reset_mmap_buf_t>(
+            dlsym(RTLD_DEFAULT, "pal_stream_reset_mmap_buf"));
+    if (!reset_mmap_buf) {
+        AHAL_WARN("pal_stream_reset_mmap_buf not supported by linked PAL");
+        return -ENOSYS;
+    }
+
+    int ret = reset_mmap_buf(pal_stream_handle_);
     AHAL_DBG("Exit: ret=%d\n", ret);
     return ret;
 }
@@ -4524,8 +4533,8 @@ StreamOutPrimary::StreamOutPrimary(
                          usecase_, config_.sample_rate);
             }
             AHAL_DBG("setting SR for usecase %d as %d", usecase_, config_.sample_rate);
-#endif
         }
+#endif
     }
 
     if (flags & AUDIO_OUTPUT_FLAG_MMAP_NOIRQ) {
@@ -6005,4 +6014,3 @@ StreamPrimary::~StreamPrimary(void)
         device_cap_query_ = NULL;
     }
 }
-

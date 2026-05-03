@@ -158,6 +158,7 @@ PRODUCT_COPY_FILES += \
     $(CONFIG_PAL_SRC_DIR)/mixer_paths_volcano_mtp_sku1.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_volcano_mtp_sku1.xml \
     $(CONFIG_PAL_SRC_DIR)/mixer_paths_volcano_mtp_wsa883x_wcd939x_sku1.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_volcano_mtp_wsa883x_wcd939x_sku1.xml \
     $(CONFIG_PAL_SRC_DIR)/mixer_paths_volcano_cdp_wsa883x_wcd939x_sku1.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_volcano_cdp_wsa883x_wcd939x_sku1.xml \
+    $(CONFIG_PAL_SRC_DIR)/mixer_paths_volcano_cdp_wsa883x_wcd939x_wcn.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_volcano_cdp_wsa883x_wcd939x_wcn.xml \
     $(CONFIG_PAL_SRC_DIR)/mixer_paths_volcano_qrd_sku1.xml:$(CONFIG_SKU_OUT_DIR)/mixer_paths_volcano_qrd_sku1.xml \
     $(CONFIG_PAL_SRC_DIR)/resourcemanager_volcano_mtp.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_volcano_mtp.xml \
     $(CONFIG_PAL_SRC_DIR)/resourcemanager_volcano6i_mtp_hac_wsa883x.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_volcano6i_mtp_hac_wsa883x.xml \
@@ -173,8 +174,10 @@ PRODUCT_COPY_FILES += \
     $(CONFIG_PAL_SRC_DIR)/resourcemanager_volcano_mtp_wsa883x_wcd939x_sku1.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_volcano_mtp_wsa883x_wcd939x_sku1.xml \
     $(CONFIG_PAL_SRC_DIR)/resourcemanager_volcano_cdp_wsa883x_wcd939x_sku1.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_volcano_cdp_wsa883x_wcd939x_sku1.xml \
     $(CONFIG_PAL_SRC_DIR)/resourcemanager_volcano_qrd_sku1.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_volcano_qrd_sku1.xml \
-	$(CONFIG_PAL_SRC_DIR)/usecaseKvManager.xml:$(TARGET_COPY_OUT_VENDOR)/etc/usecaseKvManager.xml \
-    $(AUDIO_HAL_DIR)/configs/common/media_codecs_vendor_audio.xml:$(TARGET_COPY_OUT_VENDOR)/etc/media_codecs_vendor_audio.xml \
+    $(CONFIG_PAL_SRC_DIR)/resourcemanager_volcano_mtp_wsa883x_wcn6450.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_volcano_mtp_wsa883x_wcn6450.xml \
+    $(CONFIG_PAL_SRC_DIR)/resourcemanager_volcano_cdp_wsa883x_wcd939x_wcn.xml:$(CONFIG_SKU_OUT_DIR)/resourcemanager_volcano_cdp_wsa883x_wcd939x_wcn.xml \
+    $(CONFIG_PAL_SRC_DIR)/usecaseKvManager.xml:$(TARGET_COPY_OUT_VENDOR)/etc/usecaseKvManager.xml \
+    $(CONFIG_PAL_SRC_DIR)/media_codecs_vendor_audio.xml:$(TARGET_COPY_OUT_VENDOR)/etc/media_codecs_vendor_audio.xml \
     frameworks/native/data/etc/android.hardware.audio.pro.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.audio.pro.xml \
     frameworks/native/data/etc/android.hardware.audio.low_latency.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/android.hardware.audio.low_latency.xml \
     frameworks/native/data/etc/android.hardware.sensor.dynamic.head_tracker.xml:$(TARGET_COPY_OUT_VENDOR)/etc/permissions/sku_$(DEVICE_SKU)/android.hardware.sensor.dynamic.head_tracker.xml
