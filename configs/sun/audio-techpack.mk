@@ -1,5 +1,7 @@
-include vendor/qcom/opensource/audio-hal/primary-hal/configs/sun/audio-modules.mk
-include vendor/qcom/opensource/audio-hal/primary-hal/configs/audio-generic-modules.mk
+AUDIO_HAL_DIR := hardware/qcom-caf/sm8750/audio/primary-hal
+
+include $(AUDIO_HAL_DIR)/configs/sun/audio-modules.mk
+include $(AUDIO_HAL_DIR)/configs/audio-generic-modules.mk
 include vendor/qcom/opensource/audio-kernel/audio_kernel_modules.mk
 
 
