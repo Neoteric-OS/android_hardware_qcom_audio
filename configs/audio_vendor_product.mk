@@ -1,5 +1,7 @@
+AUDIO_HAL_DIR := hardware/qcom-caf/sm8750/audio/primary-hal
+
 #Audio product definitions 
-include vendor/qcom/opensource/audio-hal/primary-hal/configs/audio-generic-modules.mk
+include $(AUDIO_HAL_DIR)/configs/audio-generic-modules.mk
 PRODUCT_PACKAGES += $(AUDIO_GENERIC_MODULES)
 
 PRODUCT_PACKAGES_DEBUG += $(MM_AUDIO_DBG)
@@ -17,9 +19,9 @@ TARGET_USES_AOSP_FOR_AUDIO := true
 endif
 endif
 ifeq ($(AUDIO_USE_STUB_HAL), true)
--include $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/common/default.mk
+-include $(TOPDIR)$(AUDIO_HAL_DIR)/configs/common/default.mk
 else
--include $(TOPDIR)vendor/qcom/opensource/audio-hal/primary-hal/configs/$(TARGET_BOARD_PLATFORM)/$(TARGET_BOARD_PLATFORM).mk
+-include $(TOPDIR)$(AUDIO_HAL_DIR)/configs/$(TARGET_BOARD_PLATFORM)/$(TARGET_BOARD_PLATFORM).mk
 endif
 
 $(warning audio check QC_HWASAN: $(QC_HWASAN) sanitize_target $(SANITIZE_TARGET))
@@ -28,7 +30,7 @@ ifneq ($(filter audio, $(QC_HWASAN)),)
 $(warning audio hwasan enabled at module level)
 AUDIO_FEATURE_USE_HWASAN_ARTIFACTS := true
 PRODUCT_HWASAN_INCLUDE_PATHS += \
-    vendor/qcom/opensource/audio-hal \
+    $(AUDIO_HAL_DIR) \
     vendor/qcom/opensource/pal \
     vendor/qcom/opensource/agm
 endif
