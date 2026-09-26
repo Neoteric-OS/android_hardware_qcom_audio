@@ -1600,6 +1600,12 @@ ndk::ScopedAStatus Module::getAAudioMixerBurstCount(int32_t* _aidl_return) {
     return ndk::ScopedAStatus::ok();
 }
 
+ndk::ScopedAStatus Module::getFlushFromFrameSupport(const AudioPortConfig& in_config __unused,
+                                                    ::aidl::android::media::audio::common::FlushFromFrameSupport* _aidl_return __unused) {
+    LOG(VERBOSE) << __func__ << ": " << mType;
+    return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
+}
+
 ndk::ScopedAStatus Module::getAAudioHardwareBurstMinUsec(int32_t* _aidl_return) {
     if (!isMmapSupported()) {
         LOG(DEBUG) << __func__ << ": mmap is not supported ";

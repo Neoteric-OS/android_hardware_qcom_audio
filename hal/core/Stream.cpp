@@ -330,6 +330,10 @@ StreamInWorkerLogic::Status StreamInWorkerLogic::cycle() {
                 populateReplyWrongState(&reply, command);
             }
             break;
+        case Tag::flushFromFrame:
+            LOG(ERROR) << __func__ << ": flushFromFrame is not supported for input stream";
+            populateReplyWrongState(&reply, command);
+            break;
     }
     reply.state = mState;
     LOG(severity) << __func__ << ": writing reply " << reply.toString();
@@ -653,6 +657,9 @@ StreamOutWorkerLogic::Status StreamOutWorkerLogic::cycle() {
                 populateReplyWrongState(&reply, command);
             }
             break;
+        case Tag::flushFromFrame:
+            populateReplyWrongState(&reply, command);
+            break;
     }
     reply.state = mState;
 
@@ -836,6 +843,12 @@ ndk::ScopedAStatus StreamCommonImpl::removeEffect(
     } else {
         LOG(DEBUG) << __func__ << ": effect Binder" << in_effect->asBinder().get();
     }
+    return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
+}
+
+ndk::ScopedAStatus StreamCommonImpl::createMmapBuffer(::aidl::android::hardware::audio::core::MmapBufferDescriptor* _aidl_return) {
+    LOG(DEBUG) << __func__;
+    (void)_aidl_return;
     return ndk::ScopedAStatus::fromExceptionCode(EX_UNSUPPORTED_OPERATION);
 }
 

@@ -50,7 +50,7 @@ class StreamStub : public StreamCommonImpl {
     bool mIsStandby = true;      // Used for validating the state machine logic.
 };
 
-class StreamInStub final : public StreamIn, public StreamStub {
+class StreamInStub : public StreamIn, public StreamStub {
   public:
     friend class ndk::SharedRefBase;
     StreamInStub(
@@ -65,7 +65,7 @@ class StreamInStub final : public StreamIn, public StreamStub {
     void onClose() override { defaultOnClose(); }
 };
 
-class StreamOutStub final : public StreamOut, public StreamStub {
+class StreamOutStub : public StreamOut, public StreamStub {
   public:
     friend class ndk::SharedRefBase;
     StreamOutStub(StreamContext&& context,

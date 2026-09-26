@@ -28,7 +28,7 @@
 
 namespace qti::audio::core {
 
-class ModulePrimary final : public Module {
+class ModulePrimary : public Module {
   public:
     ModulePrimary();
 

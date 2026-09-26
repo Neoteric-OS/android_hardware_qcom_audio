@@ -26,7 +26,7 @@
 
 namespace qti::audio::core {
 
-class ModuleStub final : public Module {
+class ModuleStub : public Module {
   public:
     ModuleStub() : Module(Type::STUB) {}
 

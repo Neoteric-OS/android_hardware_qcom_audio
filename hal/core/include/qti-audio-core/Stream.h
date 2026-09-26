@@ -420,6 +420,7 @@ struct StreamCommonInterface {
     virtual ndk::ScopedAStatus removeEffect(
             const std::shared_ptr<::aidl::android::hardware::audio::effect::IEffect>&
                     in_effect) = 0;
+    virtual ndk::ScopedAStatus createMmapBuffer(::aidl::android::hardware::audio::core::MmapBufferDescriptor* _aidl_return) = 0;
 
     // Methods below are common for both 'IStreamIn' and 'IStreamOut'. Note that
     // 'updateMetadata' in them uses an individual structure which is wrapped here.
@@ -505,6 +506,11 @@ class StreamCommonDelegator : public ::aidl::android::hardware::audio::core::BnS
         return delegate != nullptr ? delegate->removeEffect(in_effect)
                                    : ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
     }
+    ndk::ScopedAStatus createMmapBuffer(::aidl::android::hardware::audio::core::MmapBufferDescriptor* _aidl_return) override {
+        auto delegate = mDelegate.lock();
+        return delegate != nullptr ? delegate->createMmapBuffer(_aidl_return)
+                                   : ndk::ScopedAStatus::fromExceptionCode(EX_ILLEGAL_STATE);
+    }
     // It is possible that on the client side the proxy for IStreamCommon will
     // outlive the IStream* instance, and the server side IStream* instance will
     // get destroyed while this IStreamCommon instance is still alive.
@@ -559,6 +565,7 @@ class StreamCommonImpl : virtual public StreamCommonInterface, virtual public Dr
     void setStreamMicMute(const bool muted) override;
     ndk::ScopedAStatus configureMMapStream(int32_t* fd, int64_t* burstSizeFrames, int32_t* flags,
                                            int32_t* bufferSizeFrames) override;
+    ndk::ScopedAStatus createMmapBuffer(::aidl::android::hardware::audio::core::MmapBufferDescriptor* _aidl_return) override;
 
     // start of Equivalent of IStreamCallbacks
     void publishTransferReady() { mWorker->publishTransferReady(); }
